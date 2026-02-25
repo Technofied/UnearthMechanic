@@ -29,6 +29,7 @@ import dev.wuason.unearthMechanic.utils.Utils
 import dev.wuason.unearthMechanic.utils.Utils.Companion.toAdapter
 import org.bukkit.Bukkit
 import org.bukkit.FluidCollisionMode
+import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
@@ -321,6 +322,11 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
                 //Bukkit.getConsoleSender().sendMessage("El jugador tiene el permiso $permission y es $hasPermLuckPerms de Stage")
                 if (!hasPermLuckPerms) return
             }
+        }
+
+        if (stage.getReduceItemHand() > 0 && player.gameMode != GameMode.CREATIVE) {
+            val mainHand = toolUsed.getItemMainHand()
+            if (mainHand == null || mainHand.type.isAir || mainHand.amount < stage.getReduceItemHand()) return
         }
 
         if (activeSequences.contains(loc)) {
