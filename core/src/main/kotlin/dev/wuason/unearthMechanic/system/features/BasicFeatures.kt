@@ -37,7 +37,7 @@ class BasicFeatures: AbstractFeature() {
         iStage: IStage,
         iGeneric: IGeneric
     ) {
-        if (iStage.getDrops().isNotEmpty()) iStage.dropItems(loc)
+        if (iStage.getDrops().isNotEmpty()) iStage.dropItems(loc, p)
         if (iStage.getItems().isNotEmpty()) iStage.addItems(p)
 
         if (iStage.isRemoveItemMainHand() && p.gameMode != GameMode.CREATIVE) liveTool.setItemMainHand(ItemStack(Material.AIR))

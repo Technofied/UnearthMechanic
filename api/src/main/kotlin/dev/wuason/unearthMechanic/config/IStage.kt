@@ -119,10 +119,12 @@ interface IStage {
 
     /**
      * Drops items at the provided location based on the implementation's drop mechanics.
+     * Attempts to add items to the player's inventory first, then drops at location if inventory is full.
      *
-     * @param loc The location where the items will be dropped.
+     * @param loc The location where the items will be dropped if inventory is full.
+     * @param player The player whose inventory should receive the items first.
      */
-    fun dropItems(loc: Location)
+    fun dropItems(loc: Location, player: Player)
 
     /**
      * Adds items to the specified player's inventory based on certain stage conditions.

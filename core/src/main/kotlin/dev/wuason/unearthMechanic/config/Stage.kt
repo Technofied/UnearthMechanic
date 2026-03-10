@@ -88,13 +88,13 @@ open class Stage(
         return toolAnimDelay
     }
 
-    override fun dropItems(loc: Location) {
+    override fun dropItems(loc: Location, player: Player) {
         if(drops.isEmpty()) return
         if (isOnlyOneDrop()) {
-            drops[Random.nextInt(drops.size)].dropItem(loc, true)
+            drops[Random.nextInt(drops.size)].dropItemOrAddToInventory(loc, player, true)
             return
         }
-        drops.forEach { it.dropItem(loc, true) }
+        drops.forEach { it.dropItemOrAddToInventory(loc, player, true) }
     }
 
     override fun addItems(player: Player) {
