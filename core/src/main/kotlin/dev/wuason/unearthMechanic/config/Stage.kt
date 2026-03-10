@@ -24,7 +24,7 @@ open class Stage(
     private val durabilityToRemove: Int,
     private val usagesIaToRemove: Int, private val permissionStage: String,
     private val onlyOneDrop: Boolean,
-    private val reduceItemHand: Int, private val items: List<Item>, private val onlyOneItem: Boolean, private val sounds: List<Sound>,
+    private val reduceItemHand: Int, private val reduceItemInventory: Int, private val items: List<Item>, private val onlyOneItem: Boolean, private val sounds: List<Sound>,
     private val delay: Long, private val toolAnimDelay: Boolean
 ) : IStage {
 
@@ -66,6 +66,10 @@ open class Stage(
 
     override fun getReduceItemHand(): Int {
         return reduceItemHand
+    }
+
+    override fun getReduceItemInventory(): Int {
+        return reduceItemInventory
     }
 
     override fun getItems(): List<Item> {

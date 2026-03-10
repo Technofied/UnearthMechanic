@@ -82,6 +82,13 @@ interface IStage {
     fun getReduceItemHand(): Int
 
     /**
+     * Retrieves the amount of the tool item to remove from the player's inventory (any slot) when the stage is applied.
+     *
+     * @return the amount to consume from inventory, or 0 if not used.
+     */
+    fun getReduceItemInventory(): Int
+
+    /**
      * Retrieves a list of items associated with a particular stage or context.
      *
      * @return a List of IItem instances representing the items.

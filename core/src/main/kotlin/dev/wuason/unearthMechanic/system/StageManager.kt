@@ -38,8 +38,10 @@ import org.bukkit.event.Event
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitTask
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 
 class StageManager(private val core: UnearthMechanic) : IStageManager {
@@ -92,6 +94,36 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
 
     }
 
+    private fun findAllToolsAndSlots(player: Player, baseAdapterData: AdapterData): List<Pair<AdapterData, Int>> {
+        val toolFirstSlot = mutableMapOf<AdapterData, Int>()
+
+        val mainHandItem = animator.getAnimation(player)?.getItemMainHand() ?: player.inventory.itemInMainHand
+        val mainHandData = Adapter.getAdapterData(Adapter.getAdapterId(mainHandItem)).getOrNull()
+        if (mainHandData != null && core.getConfigManager().validTool(baseAdapterData, mainHandData)) {
+            toolFirstSlot[mainHandData] = -1
+        }
+
+        val heldSlot = player.inventory.heldItemSlot
+        for (slot in 0..35) {
+            if (slot == heldSlot) continue
+            val item = player.inventory.getItem(slot) ?: continue
+            if (item.type.isAir) continue
+            val data = Adapter.getAdapterData(Adapter.getAdapterId(item)).getOrNull() ?: continue
+            if (!core.getConfigManager().validTool(baseAdapterData, data)) continue
+            if (data !in toolFirstSlot) toolFirstSlot[data] = slot
+        }
+
+        return toolFirstSlot.entries.map { Pair(it.key, it.value) }
+    }
+
+    private fun resolveToolItemStack(player: Player, toolSlot: Int): ItemStack {
+        return if (toolSlot == -1) {
+            animator.getAnimation(player)?.getItemMainHand() ?: player.inventory.itemInMainHand
+        } else {
+            player.inventory.getItem(toolSlot) ?: player.inventory.itemInMainHand
+        }
+    }
+
     fun interact(player: Player, baseItemId: String, location: Location, event: Event, compatibility: ICompatibility) {
         if (player.isSneaking) return
 
@@ -101,18 +133,20 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
         if (StageData.hasStageData(location)) {
             val stageData: StageData = StageData.fromLoc(location) ?: return
             //Bukkit.getConsoleSender().sendMessage("el stagedata es "+stageData.getGeneric().isNotProtect())
-            val toolUsed: String = Adapter.getAdapterId(
-                animator.getAnimation(player)?.getItemMainHand() ?: player.inventory.itemInMainHand
-            )
-            interactExist(player, baseItemId, location, event, compatibility, stageData, toolUsed.toAdapter()!!)
+            val baseAdapterData = stageData.getGeneric().getBaseStage().getAdapterData() ?: return
+            val allTools = findAllToolsAndSlots(player, baseAdapterData)
+            val (toolUsed, toolSlot) = allTools.firstOrNull { stageData.getGeneric().existsTool(it.first) } ?: return
+            interactExist(player, baseItemId, location, event, compatibility, stageData, toolUsed, toolSlot)
             return
         }
 
         if (core.getConfigManager().validBaseItemId(baseItemId.toAdapter()!!)) {
-            val toolUsed: String = Adapter.getAdapterId(
-                animator.getAnimation(player)?.getItemMainHand() ?: player.inventory.itemInMainHand
-            )
-            interactNotExist(player, baseItemId.toAdapter()!!, location, event, compatibility, toolUsed.toAdapter()!!)
+            val baseAdapter = baseItemId.toAdapter()!!
+            val allTools = findAllToolsAndSlots(player, baseAdapter)
+            for ((toolUsed, toolSlot) in allTools) {
+                if (StageData.hasStageData(location)) break
+                interactNotExist(player, baseAdapter, location, event, compatibility, toolUsed, toolSlot)
+            }
             return
         }
     }
@@ -124,7 +158,8 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
         event: Event,
         compatibility: ICompatibility,
         stageData: StageData,
-        toolUsed: AdapterData
+        toolUsed: AdapterData,
+        toolSlot: Int
     ) {
         if (!stageData.getGeneric().existsTool(toolUsed)) return
 
@@ -138,7 +173,7 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
                 } mabye is duplicated config"
             )
 
-            val liveTool: LiveTool = LiveTool(if (animator.isAnimating(player)) animator.getAnimation(player)!!.getItemMainHand() else player.inventory.itemInMainHand, iTool, player, this)
+            val liveTool = LiveTool(resolveToolItemStack(player, toolSlot), iTool, player, this, toolSlot)
 
             if (stageData.getGeneric().getStages().size <= stageData.getStage()) {
                 StageData.removeStageData(location)
@@ -181,7 +216,8 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
         location: Location,
         event: Event,
         compatibility: ICompatibility,
-        toolUsed: AdapterData
+        toolUsed: AdapterData,
+        toolSlot: Int
     ) {
         if (!core.getConfigManager().validTool(baseAdapterData, toolUsed)) return
         val generic: IGeneric = core.getConfigManager().getGeneric(baseAdapterData, toolUsed) ?: return
@@ -193,7 +229,7 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
             val iTool: ITool = generic.getTool(toolUsed)
                 ?: throw NullPointerException("Tool not found for $toolUsed in ${generic.getId()} mabye is duplicated config")
 
-            val liveTool: LiveTool = LiveTool(if (animator.isAnimating(player)) animator.getAnimation(player)!!.getItemMainHand() else player.inventory.itemInMainHand, iTool, player, this)
+            val liveTool = LiveTool(resolveToolItemStack(player, toolSlot), iTool, player, this, toolSlot)
 
             generic.getStages()[0]?.let {
                 val stage: Stage = it as Stage
@@ -327,6 +363,17 @@ class StageManager(private val core: UnearthMechanic) : IStageManager {
         if (stage.getReduceItemHand() > 0 && player.gameMode != GameMode.CREATIVE) {
             val mainHand = toolUsed.getItemMainHand()
             if (mainHand == null || mainHand.type.isAir || mainHand.amount < stage.getReduceItemHand()) return
+        }
+
+        if (stage.getReduceItemInventory() > 0 && player.gameMode != GameMode.CREATIVE) {
+            val toolAdapterData = toolUsed.getITool().getAdapterData()
+            val count = (0..35).sumOf { slot ->
+                val item = player.inventory.getItem(slot) ?: return@sumOf 0
+                if (item.type.isAir) return@sumOf 0
+                val data = Adapter.getAdapterData(Adapter.getAdapterId(item)).getOrNull() ?: return@sumOf 0
+                if (data == toolAdapterData) item.amount else 0
+            }
+            if (count < stage.getReduceItemInventory()) return
         }
 
         if (activeSequences.contains(loc)) {

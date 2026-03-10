@@ -99,6 +99,7 @@ class ConfigManager(private val core: UnearthMechanic) : IConfigManager {
                         val onlyOneDrop = sectionStage.getBoolean("only_one_drop", false)
                         val onlyOneItem = sectionStage.getBoolean("only_one_add", false)
                         val reduceItemMainHand: Int = sectionStage.getInt("reduce_item_main_hand", 0)
+                        val reduceItemInventory: Int = sectionStage.getInt("reduce_item_inventory", 0)
                         val delay: Long = sectionStage.getLong("delay", 0)
                         val toolAnimDelay = sectionStage.getBoolean("tool_anim_on_delay", false)
                         val items: List<Item> = sectionStage.getStringList("items_add", emptyList()).map {
@@ -126,6 +127,7 @@ class ConfigManager(private val core: UnearthMechanic) : IConfigManager {
                                 permissionStage,
                                 onlyOneDrop,
                                 reduceItemMainHand,
+                                reduceItemInventory,
                                 items,
                                 onlyOneItem,
                                 sounds,
@@ -143,6 +145,7 @@ class ConfigManager(private val core: UnearthMechanic) : IConfigManager {
                             permissionStage,
                             onlyOneDrop,
                             reduceItemMainHand,
+                            reduceItemInventory,
                             items,
                             onlyOneItem,
                             sounds,
@@ -175,7 +178,7 @@ class ConfigManager(private val core: UnearthMechanic) : IConfigManager {
                                     stages.size,
                                     adapterDataSeq,
                                     emptyList<Drop>(),
-                                    false, false, 0, 0, "", false, 0,
+                                    false, false, 0, 0, "", false, 0, 0,
                                     emptyList<Item>(), false, emptyList<Sound>(), 0L, false
                                 ) as Stage
 
@@ -212,6 +215,7 @@ class ConfigManager(private val core: UnearthMechanic) : IConfigManager {
                             0,
                             "",
                             false,
+                            0,
                             0,
                             listOf<Item>(),
                             false,
